@@ -26,9 +26,10 @@ namespace Ultraviolet.VisualStudio.Uvss.Parsing
 		/// <param name="snapshot">The snapshot for which to return a task.</param>
 		/// <param name="mostRecentDocument">The most recent fully-parsed document for the buffer.</param>
 		/// <returns>The task that was retrieved for the specified snapshot.</returns>
-		public Task<UvssTextParserResult> GetParseTask(ITextSnapshot snapshot, out UvssTextParserResult mostRecentDocument)
+		public Task<UvssTextParserResult> GetParseTaskAsync(ITextSnapshot snapshot, out UvssTextParserResult mostRecentDocument)
 		{
-			lock (syncObject)
+#pragma warning disable VSTHRD003
+            lock (syncObject)
 			{
 				var requestedVersion = snapshot.Version;
 
@@ -50,8 +51,9 @@ namespace Ultraviolet.VisualStudio.Uvss.Parsing
 					return taskQueued;
 				}
 			}
+#pragma warning restore VSTHRD003
 
-			var task = default(Task<UvssTextParserResult>);
+            var task = default(Task<UvssTextParserResult>);
 			task = new Task<UvssTextParserResult>(() =>
 			{
 				ITextVersion version;
@@ -114,13 +116,11 @@ namespace Ultraviolet.VisualStudio.Uvss.Parsing
 		/// Gets the most recently parsed document.
 		/// </summary>
 		/// <param name="mostRecentDocument">The most recent fully-parsed document for the buffer.</param>
-		/// <returns>The task that was used to generate the document.</returns>
-		public Task<UvssTextParserResult> GetMostRecent(out UvssTextParserResult mostRecentDocument)
+		public void GetMostRecent(out UvssTextParserResult mostRecentDocument)
 		{
 			lock (syncObject)
 			{
 				mostRecentDocument = this.mostRecentDocument;
-				return taskComplete;
 			}
 		}
 
@@ -149,12 +149,8 @@ namespace Ultraviolet.VisualStudio.Uvss.Parsing
 		/// <param name="args">The event arguments.</param>
 		private void RaiseDocumentParsed(UvssTextParserEventArgs args)
 		{
-			var temp = DocumentParsed;
-			if (temp != null)
-			{
-				temp(this, args);
-			}
-		}
+            DocumentParsed?.Invoke(this, args);
+        }
 
 		// The delay before the queued task executes.
 		private const Int32 QueuedTaskDelay = 500;

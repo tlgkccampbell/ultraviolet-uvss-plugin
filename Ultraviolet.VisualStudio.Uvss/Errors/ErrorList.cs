@@ -34,7 +34,7 @@ namespace Ultraviolet.VisualStudio.Uvss.Errors
 			this.textBuffer.Parser.DocumentParsed += (sender, e) =>
 			{
 				var mostRecentResult = default(UvssTextParserResult);
-				var mostRecentTask = this.textBuffer.Parser.GetMostRecent(out mostRecentResult);
+			    this.textBuffer.Parser.GetMostRecent(out mostRecentResult);
 				OnDocumentGenerated(mostRecentResult);
 			};
         }
@@ -165,7 +165,8 @@ namespace Ultraviolet.VisualStudio.Uvss.Errors
                 }
                 catch { return; }
             }
-            
+
+            ThreadHelper.ThrowIfNotOnUIThread();
             ErrorHandler.ThrowOnFailure(windowFrame.Show());
 
             var vsTextView = VsShellUtilities.GetTextView(windowFrame);
@@ -180,7 +181,10 @@ namespace Ultraviolet.VisualStudio.Uvss.Errors
             var endCol = task.Column;
 
             var vsTextManager = (IVsTextManager)serviceProvider.GetService(typeof(SVsTextManager));
-            vsTextManager.NavigateToLineAndColumn(vsTextBuffer, ref logicalView, startLine, startCol, endLine, endCol);
+            if (vsTextManager != null)
+            {
+                vsTextManager.NavigateToLineAndColumn(vsTextBuffer, ref logicalView, startLine, startCol, endLine, endCol);
+            }
         }
 
 		/// <summary>

@@ -1,9 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Microsoft.VisualStudio.Text;
+﻿using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Ultraviolet.VisualStudio.Uvss.Parsing;
+using Microsoft.VisualStudio.Threading;
+using Microsoft.VisualStudio.Shell;
 
 namespace Ultraviolet.VisualStudio.Uvss.Classification
 {
@@ -54,14 +57,16 @@ namespace Ultraviolet.VisualStudio.Uvss.Classification
 			var blockSpan = buffer.GetOutermostBlockSpan(span);
 
 			var mostRecentDocument = default(UvssTextParserResult);
-			var task = buffer.Parser.GetParseTask(span.Snapshot, out mostRecentDocument);
-			if (task.Status != TaskStatus.RanToCompletion)
-			{
-				task.ContinueWith(t =>
-				{
-					RaiseClassificationChanged(blockSpan);
-				},
-				TaskContinuationOptions.OnlyOnRanToCompletion);
+			var task = buffer.Parser.GetParseTaskAsync(span.Snapshot, out mostRecentDocument);
+            if (task.Status != TaskStatus.RanToCompletion)
+            {
+                ThreadHelper.JoinableTaskFactory.Run(() =>
+                {
+                    return task.ContinueWith(t =>
+                    {
+                        RaiseClassificationChanged(blockSpan);
+                    }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+                });
 			}
 
 			return VisitDocument(mostRecentDocument, blockSpan) ?? emptySpanList;
