@@ -60,14 +60,13 @@ namespace Ultraviolet.VisualStudio.Uvss.Classification
 			var task = buffer.Parser.GetParseTaskAsync(span.Snapshot, out mostRecentDocument);
             if (task.Status != TaskStatus.RanToCompletion)
             {
-                ThreadHelper.JoinableTaskFactory.Run(() =>
+#pragma warning disable VSTHRD110
+                task.ContinueWith(t =>
                 {
-                    return task.ContinueWith(t =>
-                    {
-                        RaiseClassificationChanged(blockSpan);
-                    }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
-                });
-			}
+                    RaiseClassificationChanged(blockSpan);
+                }, CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+#pragma warning restore VSTHRD110
+            }
 
 			return VisitDocument(mostRecentDocument, blockSpan) ?? emptySpanList;
 		}
